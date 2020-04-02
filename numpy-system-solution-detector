@@ -27,8 +27,8 @@ def row_simplification(row):
 def matrix_simplification(matrix):
     old_matrix = matrix.copy()
     for row in range(0, matrix.shape[0]):
-        # matrix[row] = row_simplification(matrix[row])
-        matrix = make_pivot_one(matrix, row)
+        if find_pivot_index_in_a_row(matrix,row) != matrix.shape[1]:
+            matrix = make_pivot_one(matrix, row)
     is_equal = True
     for row in range(0, matrix.shape[0]):
         for col in range(0, matrix.shape[1]):
@@ -41,8 +41,11 @@ def matrix_simplification(matrix):
     return matrix
 
 def swap_two_rows(matrix, x, y):  
-    matrix[[x, y]] = matrix[[y, x]]
-    return matrix
+    try:    
+        matrix[[x, y]] = matrix[[y, x]]
+        return matrix
+    except: 
+        return matrix
 
 def move_zeros_down(matrix, row, column):
     # صفر های ستون فلانم ماتریس رو از سر فلانم به پایین ببر پایین
@@ -58,7 +61,7 @@ def move_zeros_down(matrix, row, column):
 def find_pivot_index_in_a_row(matrix, row):
     pivot_index = 0
     for i in range(0,matrix.shape[1]):
-        if matrix[row][i] == 0:
+        if abs(round(matrix[row][i],1)) == 0.0:
             pivot_index += 1
         else:
             break
@@ -155,7 +158,7 @@ def print_pivot_form(matrix):
         inconsistent = False
         for col in range(0,matrix.shape[1]):
             if not pivot_found:
-                if matrix[row][col] == 0:
+                if abs(round(matrix[row][col],1)) == 0.0:
                     print('0', end = '  ')
                 else:
                     print('P', end = '  ')
@@ -174,7 +177,7 @@ def print_pivot_form(matrix):
 def is_row_zero(matrix, row):
     is_zero = True
     for i in range(0, matrix.shape[1]):
-        if matrix[row][i] != 0:
+        if abs(round(matrix[row][i],1)) != 0.0:
             is_zero = False
             break
     return is_zero
@@ -239,7 +242,7 @@ def make_pivot_one(matrix ,row):
     if is_row_zero(matrix, row):
         return matrix
     pivot = matrix[row][find_pivot_index_in_a_row(matrix, row)]
-    if pivot !=0 and pivot !=1:
+    if abs(round(pivot,1)) != 0.0 and pivot !=1:
         simplified_row = matrix[row] / pivot
         print('      >>> [',end='')
         for col in range(0, matrix.shape[1]):
@@ -294,12 +297,25 @@ def print_equations(matrix):
     print('')
 
 def show_answers_for_unique_answer(pivot_indexes, answers):
-    # print(answers)
     print('>>> the only answer of this system is:')
     for i in range(0, answers.shape[0]):
         print('   >>> x', end ='')
         print(pivot_indexes[i] + 1,'= ', end ='')
         print(round(answers[i][0],1))
+
+def return_pivot_indexes(matrix):
+    pivot_indexes = []
+    for row in range (0, matrix.shape[0]):
+        if find_pivot_index_in_a_row(matrix, row) != matrix.shape[1]:
+            pivot_indexes.append(find_pivot_index_in_a_row(matrix, row))
+    return pivot_indexes
+
+def return_free_indexes(matrix):
+    pivot_indexes = []
+    for row in range (0, matrix.shape[0]):
+        if not row in return_pivot_indexes(matrix):
+            pivot_indexes.append(find_pivot_index_in_a_row(matrix, row))
+    return pivot_indexes
 
 def show_answers_for_infinity_answers(matrix):
     print('>>> the answers of this system are:')
@@ -320,9 +336,70 @@ def show_answers_for_infinity_answers(matrix):
             print('+',round(a[row][-1],1))
     #print free variables:
     for i in range (0,a.shape[1]-1):
-        if not i in sympy.Matrix(a).rref()[1]:
+        if not i in return_pivot_indexes(matrix):
             print('   >>> x', end='')
             print(i + 1 , '= free')
+
+def show_answers_by_vectors(matrix):
+    #input is reduced echelon
+    print('>>> vector form of the answers')
+    number_of_variables = matrix.shape[1]-1
+
+    x = []
+    for i in range(0, number_of_variables):
+        x.append(i+1)
+    x = np.array(x)
+    x = x.reshape(-1,1)
+
+    c = [] #constast
+    for i in range(0, number_of_variables):
+        c.append(matrix[i][-1])
+    c = np.array(c)
+    c = c.reshape(-1,1)
+
+    number_of_free_variables = len(return_free_indexes(matrix))
+    f = {} #free variables
+    for i in range(0, number_of_variables):
+        if i not in return_pivot_indexes(matrix):
+            tmp = []
+            for var in range(0, number_of_variables):
+                if var != i:
+                    tmp.append(matrix[var][i])
+                else:
+                    tmp.append(1.0)
+            
+            tmp = np.array(tmp)
+            tmp = tmp.reshape(-1,1)
+            f[i] = tmp
+    print('   >>>  X = C ',end='')
+    for i in f:
+        print('+ x',end = '')
+        print(i+1, end = '')
+        print('(F',end = '')
+        print(i+1, end = ') ')
+    print('\nWhere:')
+    print('\n>>> X:')
+    
+    for row in range(x.shape[0]):
+        if row == 0:
+            print('[[', end = ' ')
+        else:
+            print(' [', end = ' ')
+        for col in range(x.shape[1]):
+            print('x',end='')
+            print(round(x[row][col], 1), end ='   \t')
+        if row == x.shape[0] - 1:
+            print(']]')
+        else:
+            print(']')
+    print('\n>>> C:')
+    print_matrix(c)
+
+    for i in f:
+        print('\n>>> F',end = '')
+        print(i+1,':')
+        print_matrix(f[i])
+        print('')
 
 def calculate_rankA(matrix):
     print('>>> rank(A) = dim(Col(A)) =', np.linalg.matrix_rank(matrix))
@@ -361,6 +438,8 @@ def exercise_1(coefficients_matrix, constant_matrix):
     print('******* MAKE THE SYSTEM ECHELON *******')
     print('***************************************')
     echelon = make_echelon(augmented_matrix)
+    print("echelon form:")
+    print_matrix(echelon)
 
     
 
@@ -373,15 +452,18 @@ def exercise_1(coefficients_matrix, constant_matrix):
     state_of_system(reduced_echelon)
 
     if(not is_inconsistent(reduced_echelon)):
+        print('***************************************')
         print('*************** ANSWERS ***************')
         print('***************************************')
         try:
             # if the system has 1 answer
             show_answers_for_unique_answer(sympy.Matrix(reduced_echelon).rref()[1], np.linalg.solve(coefficients_matrix,constant_matrix))
+            show_answers_by_vectors(reduced_echelon)
             return 
         except:
             # if the system has infinite answers
             show_answers_for_infinity_answers(reduced_echelon)
+            show_answers_by_vectors(reduced_echelon)
             return
 
 def exercise_2(coefficients):
