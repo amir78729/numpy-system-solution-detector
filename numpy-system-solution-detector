@@ -35,9 +35,9 @@ def matrix_simplification(matrix):
             if matrix[row][col] != old_matrix[row][col]:
                 is_equal = False      
     if not is_equal:
-        print('simplified matrix:')
+        print('\nsimplified matrix:')
         print_matrix(matrix)
-        print('***************************************')
+        print('\n-------------------------------------------------------\n')
     return matrix
 
 def swap_two_rows(matrix, x, y):  
@@ -52,6 +52,17 @@ def move_zeros_down(matrix, row, column):
     j = matrix.shape[0]-1
     for i in range(row, matrix.shape[0]):
         if matrix[i][column] == 0  and matrix[j][column] != 0 and i<j:
+            print(i,j)
+            print('>>> replace row',i,' and row',j)
+            swap_two_rows(matrix, i, j)
+            j = j - 1   
+    return matrix
+
+def move_zero_rows_down(matrix):
+    j = matrix.shape[0]-1
+    for i in range(0, matrix.shape[0]):
+        # if matrix[i][column] == 0  and matrix[j][column] != 0 and i<j:
+        if is_row_zero(matrix,i)  and not is_row_zero(matrix,j) and i<j:
             print(i,j)
             print('>>> replace row',i,' and row',j)
             swap_two_rows(matrix, i, j)
@@ -76,7 +87,7 @@ def add_rows_to_eachother(matrix, up, down):
         return matrix
     up_coefficient = matrix[up][pivot_index]
     down_coefficient = matrix[down][pivot_index]
-    print('   >>> replacement:')
+    print('\n   >>> replacement:')
     print_status_of_adding_row_to_each_other(up,down,up_coefficient,down_coefficient)
     for i in range(0, matrix.shape[1]):
         matrix[down][i] = matrix[down][i] - (down_coefficient/up_coefficient)*matrix[up][i]
@@ -108,9 +119,9 @@ def make_lower_elements_zero (matrix, row):
         if not is_equal:
             break
     if not is_equal:
-        print('simplified matrix:')
+        print('\nsimplified matrix:')
         print_matrix(matrix)
-        print('***************************************')
+        print('\n-------------------------------------------------------\n')
     return matrix
 
 def is_inconsistent(echelon_matrix):
@@ -192,7 +203,6 @@ def augmented(coefficients_matrix, constant_matrix):
     augmented = np.column_stack((A, b))
     print('augmented matrix:')
     print_matrix(augmented)
-    print('***************************************')
     return augmented
 
 def make_upper_elements_zero (matrix, row):
@@ -208,14 +218,15 @@ def make_upper_elements_zero (matrix, row):
         if not is_equal:
             break
     if not is_equal:
-        print('simplified matrix:')
+        print('\nsimplified matrix:')
         print_matrix(matrix)
-        print('***************************************')
+        print('\n-------------------------------------------------------\n')
     return matrix
 
 def make_echelon(matrix):
     row = 0
     for i in range(0,matrix.shape[1]):
+        move_zero_rows_down(matrix)
         print_equations(matrix)
         print('>>> elementary row operations:')
         print('   >>> scaling:')
@@ -235,7 +246,6 @@ def make_reduced_echelon(echelon_matrix):
         print_equations(echelon_matrix)
     print('reduced echelon form:')
     print_matrix(echelon_matrix)
-    print('***************************************')
     return echelon_matrix
 
 def make_pivot_one(matrix ,row):
@@ -244,7 +254,7 @@ def make_pivot_one(matrix ,row):
     pivot = matrix[row][find_pivot_index_in_a_row(matrix, row)]
     if abs(round(pivot,1)) != 0.0 and pivot !=1:
         simplified_row = matrix[row] / pivot
-        print('      >>> [',end='')
+        print('\n      >>> [',end='')
         for col in range(0, matrix.shape[1]):
             print(round(matrix[row][col],1), end='   ')
         print('] /',round(pivot,1))
@@ -260,11 +270,11 @@ def make_pivot_one(matrix ,row):
 def print_matrix(matrix):
     for row in range(matrix.shape[0]):
         if row == 0:
-            print('[[', end = ' ')
+            print('  [[', end = ' ')
         else:
-            print(' [', end = ' ')
+            print('   [', end = ' ')
         for col in range(matrix.shape[1]):
-            print(round(matrix[row][col], 1), end ='   \t')
+            print(round(matrix[row][col], 1), end ='   \t\t')
         if row == matrix.shape[0] - 1:
             print(']]')
         else:
@@ -273,7 +283,7 @@ def print_matrix(matrix):
 def print_equations(matrix):
     print('>>> row equations:')
     for row in range(0, matrix.shape[0]):
-        print('   >>> row',end = '')
+        print('\n   >>> row',end = '')
         print(row+1,': ', end='')
         left_side_is_zero = True
         for col in range(0, matrix.shape[1] - 1):
@@ -344,6 +354,13 @@ def show_answers_by_vectors(matrix):
     #input is reduced echelon
     print('>>> vector form of the answers')
     number_of_variables = matrix.shape[1]-1
+    if number_of_variables > matrix.shape[0]:
+        zero_row = []
+        for i in range (matrix.shape[1]):
+            zero_row.append(0.0)
+        zero_row = np.array(zero_row)
+    for i in range(number_of_variables - matrix.shape[0]):
+        matrix = np.vstack((matrix, zero_row))
 
     x = []
     for i in range(0, number_of_variables):
@@ -353,7 +370,10 @@ def show_answers_by_vectors(matrix):
 
     c = [] #constast
     for i in range(0, number_of_variables):
-        c.append(matrix[i][-1])
+        if i < matrix.shape[0]:
+            c.append(matrix[i][-1])
+        else:
+            c.append(0.)
     c = np.array(c)
     c = c.reshape(-1,1)
 
@@ -364,7 +384,7 @@ def show_answers_by_vectors(matrix):
             tmp = []
             for var in range(0, number_of_variables):
                 if var != i:
-                    tmp.append(matrix[var][i])
+                    tmp.append(-matrix[var][i])
                 else:
                     tmp.append(1.0)
             
@@ -428,33 +448,35 @@ def create_matrix(R,C,name):
     return numpy_matrix
 
 def exercise_1(coefficients_matrix, constant_matrix):
-    print('***************************************')
-    print('************** EXERCISE1 **************')
-    print('***************************************')
-    print('**** CREATING THE AUGMENTED MATRIX ****')
-    print('***************************************')
+    print('\n\n*******************************************************')
+    print('********************** EXERCISE1 **********************')
+    print('*******************************************************')
+    print('************ CREATING THE AUGMENTED MATRIX ************')
+    print('*******************************************************')
     augmented_matrix = augmented(coefficients_matrix, constant_matrix)
 
-    print('******* MAKE THE SYSTEM ECHELON *******')
-    print('***************************************')
+    print('\n\n*******************************************************')
+    print('*************** MAKE THE SYSTEM ECHELON ***************')
+    print('*******************************************************')
     echelon = make_echelon(augmented_matrix)
     print("echelon form:")
     print_matrix(echelon)
 
     
-
-    print('*** MAKE THE SYSTEM REDUCED ECHELON ***')
-    print('***************************************')
+    print('\n\n*******************************************************')
+    print('*********** MAKE THE SYSTEM REDUCED ECHELON ***********')
+    print('*******************************************************')
     reduced_echelon = make_reduced_echelon(echelon)
 
-    print('*************** RESULTS ***************')
-    print('***************************************')
+    print('\n\n*******************************************************')
+    print('*********************** RESULTS ***********************')
+    print('*******************************************************')
     state_of_system(reduced_echelon)
 
     if(not is_inconsistent(reduced_echelon)):
-        print('***************************************')
-        print('*************** ANSWERS ***************')
-        print('***************************************')
+        print('\n\n*******************************************************')
+        print('*********************** ANSWERS ***********************')
+        print('*******************************************************')
         try:
             # if the system has 1 answer
             show_answers_for_unique_answer(sympy.Matrix(reduced_echelon).rref()[1], np.linalg.solve(coefficients_matrix,constant_matrix))
@@ -467,9 +489,9 @@ def exercise_1(coefficients_matrix, constant_matrix):
             return
 
 def exercise_2(coefficients):
-    print('***************************************')
-    print('************** EXERCISE2 **************')
-    print('***************************************')
+    print('\n*******************************************************')
+    print('********************** EXERCISE2 **********************')
+    print('*******************************************************')
     print('A =')
     print_matrix(coefficients)
     calculate_dim_NulA(coefficients)
@@ -477,12 +499,12 @@ def exercise_2(coefficients):
     print('   >>> we can see that:\n       rank(A) + dim(Nul(A)) =', np.linalg.matrix_rank(coefficients),'+',coefficients.shape[1] - np.linalg.matrix_rank(coefficients),'=',coefficients.shape[1],'= n')
 
 def start():
-    print('***************************************')
-    print('******** Applied Linear Algebra *******')
-    print('************** Project #1 *************')
-    print('******** Amirhossein Alibakhshi *******')
-    print('************** id:9731096 *************')
-    print('***************************************\n')
+    print('*******************************************************')
+    print('**************** Applied Linear Algebra ***************')
+    print('********************** Project #1 *********************')
+    print('**************** Amirhossein Alibakhshi ***************')
+    print('********************** id:9731096 *********************')
+    print('*******************************************************\n')
     print('Hi! How do you want to work with this ')
     print('program?')
     print('1 - using ready matrixes')
@@ -506,6 +528,12 @@ def start():
             my_constant = create_matrix(R, 1, 'b')
             exercise_1(my_coefficients,my_constant)
             exercise_2(my_coefficients)
+            print('\n*******************************************************')
+            print('**************** Applied Linear Algebra ***************')
+            print('********************** Project #1 *********************')
+            print('**************** Amirhossein Alibakhshi ***************')
+            print('********************** id:9731096 *********************')
+            print('*******************************************************\n')
             print('Now how do you want to work with this ')
             print('program?')
             print('1 - using ready matrixes')
